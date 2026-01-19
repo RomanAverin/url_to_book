@@ -5,7 +5,6 @@ from typing import Literal, Optional
 from urllib.parse import urljoin
 
 from lxml import html
-from lxml.html import tostring
 from newspaper import Article, Config
 
 ALLOWED_TAGS = {"b", "strong", "i", "em", "u"}

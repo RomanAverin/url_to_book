@@ -4,7 +4,7 @@ from typing import Optional
 
 from fpdf import FPDF
 
-from .extractor import ContentBlock, ExtractedArticle
+from .extractor import ExtractedArticle
 from .image_handler import DownloadedImage
 
 HEADING_SIZES = {

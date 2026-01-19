@@ -121,7 +121,7 @@ def download_top_image(
     if not url:
         return None
 
-    # Показываем сообщение только если не verbose и show_progress
+    # show only without verbose and show_progress mode
     if show_progress and not verbose:
         click.echo("Downloading top image...")
     elif verbose:
@@ -157,18 +157,17 @@ def download_images(
 
     # Фильтруем URL заранее (удаляем ads и skip_urls)
     urls_to_process = [
-        url for url in image_urls
-        if url not in skip_urls and not is_ad_url(url)
-    ][:max_images * 2]  # Берем с запасом, т.к. некоторые могут не загрузиться
+        url for url in image_urls if url not in skip_urls and not is_ad_url(url)
+    ][: max_images * 2]  # Берем с запасом, т.к. некоторые могут не загрузиться
 
     # Выбор режима отображения
     if show_progress and not verbose:
         # Режим прогресс-бара
         with click.progressbar(
             urls_to_process,
-            label='Downloading images',
+            label="Downloading images",
             show_pos=True,
-            item_show_func=lambda url: f"{url[:40]}..." if url else ""
+            item_show_func=lambda url: f"{url[:40]}..." if url else "",
         ) as progress_bar:
             for url in progress_bar:
                 if len(downloaded) >= max_images:

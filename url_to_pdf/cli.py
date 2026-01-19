@@ -106,13 +106,11 @@ def _download_article_images(article, no_images: bool, max_images: int, verbose:
     if no_images:
         return top_image, images
 
-    show_progress = not verbose  # Прогресс-бары только когда НЕ verbose
+    show_progress = not verbose  # only without verbose mode
 
     if article.top_image:
         top_image = download_top_image(
-            article.top_image,
-            verbose=verbose,
-            show_progress=show_progress
+            article.top_image, verbose=verbose, show_progress=show_progress
         )
 
     if article.images:
@@ -122,7 +120,7 @@ def _download_article_images(article, no_images: bool, max_images: int, verbose:
             max_images=max_images,
             verbose=verbose,
             skip_urls=skip_urls,
-            show_progress=show_progress
+            show_progress=show_progress,
         )
 
     # Итоговое сообщение
@@ -130,7 +128,9 @@ def _download_article_images(article, no_images: bool, max_images: int, verbose:
         total = len(images) + (1 if top_image else 0)
         click.echo(f"Downloaded {total} image(s)")
     elif verbose:
-        click.echo(f"Downloaded {len(images)} images" + (" + top image" if top_image else ""))
+        click.echo(
+            f"Downloaded {len(images)} images" + (" + top image" if top_image else "")
+        )
 
     return top_image, images
 
@@ -220,7 +220,9 @@ def main(
         _show_article_info(article, url, verbose)
 
     # Download images
-    top_image, images = _download_article_images(article, no_images, max_images, verbose)
+    top_image, images = _download_article_images(
+        article, no_images, max_images, verbose
+    )
     all_images = ([top_image] if top_image else []) + images
 
     # Generate PDF
@@ -230,9 +232,7 @@ def main(
     try:
         if verbose:
             click.echo(f"Generating PDF: {output}")
-        generate_pdf(
-            article, all_images, output, custom_title=title, font_family=font
-        )
+        generate_pdf(article, all_images, output, custom_title=title, font_family=font)
         click.echo(f"✓ Saved: {output}")
     finally:
         cleanup_images(all_images)

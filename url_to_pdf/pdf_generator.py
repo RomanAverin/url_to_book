@@ -115,8 +115,6 @@ def generate_pdf(
     meta_parts = []
     if article.authors:
         meta_parts.append(f"Authors: {', '.join(article.authors)}")
-    if article.publish_date:
-        meta_parts.append(f"Date: {article.publish_date.strftime('%Y-%m-%d')}")
     meta_parts.append(f"Source: {article.source_url}")
 
     if meta_parts:
@@ -135,7 +133,11 @@ def generate_pdf(
 
     content_blocks = article.content if article.content else []
     paragraph_count = sum(1 for b in content_blocks if b.type == "paragraph")
-    image_interval = max(1, paragraph_count // (len(images_to_insert) + 1)) if images_to_insert else 0
+    image_interval = (
+        max(1, paragraph_count // (len(images_to_insert) + 1))
+        if images_to_insert
+        else 0
+    )
     paragraph_idx = 0
 
     for block in content_blocks:
@@ -153,7 +155,11 @@ def generate_pdf(
             pdf.ln(4)
 
             paragraph_idx += 1
-            if images_to_insert and image_interval > 0 and paragraph_idx % image_interval == 0:
+            if (
+                images_to_insert
+                and image_interval > 0
+                and paragraph_idx % image_interval == 0
+            ):
                 img = images_to_insert.pop(0)
                 _insert_image(pdf, img, effective_width)
 
@@ -174,7 +180,7 @@ def _write_formatted_text(pdf: ArticlePDF, html_text: str) -> None:
     last_end = 0
     for match in tag_pattern.finditer(html_text):
         if match.start() > last_end:
-            parts.append(("text", html_text[last_end:match.start()]))
+            parts.append(("text", html_text[last_end : match.start()]))
 
         if match.group(0) == "</a>":
             parts.append(("end_link", None))
@@ -196,7 +202,14 @@ def _write_formatted_text(pdf: ArticlePDF, html_text: str) -> None:
 
     for part_type, value in parts:
         if part_type == "text" and value:
-            style = ("B" if bold else "") + ("I" if italic else "")
+            if bold and italic:
+                style = "BI"
+            elif bold:
+                style = "B"
+            elif italic:
+                style = "I"
+            else:
+                style = ""
             pdf.set_font(pdf.font_family_name, style, 12)
 
             if link_url:

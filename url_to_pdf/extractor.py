@@ -1,6 +1,5 @@
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Literal, Optional
 from urllib.parse import urljoin
 
@@ -74,13 +73,14 @@ class ExtractedArticle:
     content: list[ContentBlock]
     text: str  # Plain text fallback
     authors: list[str]
-    publish_date: Optional[datetime]
     images: list[str]
     top_image: Optional[str]
     source_url: str
 
 
-def _extract_content_blocks(doc: html.HtmlElement, base_url: str = "") -> list[ContentBlock]:
+def _extract_content_blocks(
+    doc: html.HtmlElement, base_url: str = ""
+) -> list[ContentBlock]:
     """Extract structured content with headings from article HTML."""
     blocks: list[ContentBlock] = []
 
@@ -108,20 +108,24 @@ def _extract_content_blocks(doc: html.HtmlElement, base_url: str = "") -> list[C
             text = element.text_content().strip()
             if text:
                 level = int(element.tag[1])
-                blocks.append(ContentBlock(
-                    type="heading",
-                    text=text,
-                    html=_clean_html(element, base_url),
-                    level=level,
-                ))
+                blocks.append(
+                    ContentBlock(
+                        type="heading",
+                        text=text,
+                        html=_clean_html(element, base_url),
+                        level=level,
+                    )
+                )
         elif element.tag == "p":
             text = element.text_content().strip()
             if text and len(text) > 20:
-                blocks.append(ContentBlock(
-                    type="paragraph",
-                    text=text,
-                    html=_clean_html(element, base_url),
-                ))
+                blocks.append(
+                    ContentBlock(
+                        type="paragraph",
+                        text=text,
+                        html=_clean_html(element, base_url),
+                    )
+                )
 
     return blocks
 
@@ -189,7 +193,6 @@ def extract_article(url: str, timeout: int = 30) -> ExtractedArticle:
         content=content,
         text=article.text or "",
         authors=list(article.authors) if article.authors else [],
-        publish_date=article.publish_date,
         images=images,
         top_image=top_image,
         source_url=url,

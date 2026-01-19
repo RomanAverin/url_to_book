@@ -10,6 +10,124 @@ from .pdf_generator import (
 )
 
 
+def _handle_list_fonts() -> None:
+    """Handle --list-fonts flag: display available fonts and exit."""
+    available = find_available_fonts()
+    all_families = get_font_families()
+
+    if not available:
+        click.echo("No fonts are available in the system.")
+        click.echo("\nPlease install one of the following:")
+        for name, family in all_families.items():
+            click.echo(f"  - {family.display_name}")
+        raise click.ClickException("No fonts available")
+
+    try:
+        default = get_default_font()
+    except RuntimeError:
+        default = None
+
+    click.echo("Available fonts:")
+    for name in available:
+        family = all_families[name]
+        default_mark = " (default)" if name == default else ""
+        click.echo(f"  * {name} ({family.display_name}){default_mark}")
+
+
+def _validate_required_args(url: str | None, output: str | None) -> None:
+    """Validate that required arguments are provided.
+
+    Args:
+        url: The URL to extract content from
+        output: The output file path
+
+    Raises:
+        click.ClickException: If required arguments are missing
+    """
+    if not url:
+        raise click.ClickException("URL is required (unless using --list-fonts)")
+    if not output:
+        raise click.ClickException("Output file path is required (-o/--output)")
+
+
+def _show_font_info(font: str | None, verbose: bool) -> None:
+    """Display information about the selected font.
+
+    Args:
+        font: Font family name or None for default
+        verbose: Whether to show output
+    """
+    if not verbose:
+        return
+
+    if font:
+        click.echo(f"Using font: {font}")
+    else:
+        try:
+            default_font = get_default_font()
+            click.echo(f"Using default font: {default_font}")
+        except RuntimeError:
+            pass
+
+
+def _show_article_info(article, url: str, verbose: bool) -> None:
+    """Display extracted article information.
+
+    Args:
+        article: Extracted article object
+        url: Source URL
+        verbose: Whether to show output
+    """
+    if not verbose:
+        return
+
+    click.echo(f"Extracting article from: {url}")
+    click.echo(f"Title: {article.title}")
+    click.echo(f"Text length: {len(article.text)} chars")
+    click.echo(f"Top image: {article.top_image or 'None'}")
+    click.echo(f"Found {len(article.images)} images")
+
+
+def _download_article_images(article, no_images: bool, max_images: int, verbose: bool):
+    """Download article images if needed.
+
+    Args:
+        article: Extracted article object
+        no_images: Whether to skip image download
+        max_images: Maximum number of images to download
+        verbose: Whether to show progress
+
+    Returns:
+        Tuple of (top_image, images_list)
+    """
+    top_image = None
+    images = []
+
+    if no_images:
+        return top_image, images
+
+    if article.top_image:
+        if verbose:
+            click.echo("Downloading top image...")
+        top_image = download_top_image(article.top_image, verbose=verbose)
+
+    if article.images:
+        if verbose:
+            click.echo("Downloading article images...")
+        skip_urls = {article.top_image} if article.top_image else set()
+        images = download_images(
+            article.images,
+            max_images=max_images,
+            verbose=verbose,
+            skip_urls=skip_urls,
+        )
+
+    if verbose:
+        click.echo(f"Downloaded {len(images)} images" + (" + top image" if top_image else ""))
+
+    return top_image, images
+
+
 @click.command()
 @click.argument("url", required=False)
 @click.option(
@@ -68,90 +186,36 @@ def main(
     """
     # Handle --list-fonts
     if list_fonts:
-        available = find_available_fonts()
-        all_families = get_font_families()
-
-        if not available:
-            click.echo("No fonts are available in the system.")
-            click.echo("\nPlease install one of the following:")
-            for name, family in all_families.items():
-                click.echo(f"  - {family.display_name}")
-            raise click.ClickException("No fonts available")
-
-        try:
-            default = get_default_font()
-        except RuntimeError:
-            default = None
-
-        click.echo("Available fonts:")
-        for name in available:
-            family = all_families[name]
-            default_mark = " (default)" if name == default else ""
-            click.echo(f"  * {name} ({family.display_name}){default_mark}")
-
+        _handle_list_fonts()
         return
 
-    # Check required arguments
-    if not url:
-        raise click.ClickException("URL is required (unless using --list-fonts)")
-    if not output:
-        raise click.ClickException("Output file path is required (-o/--output)")
+    # Validate required arguments
+    _validate_required_args(url, output)
+    assert url is not None  # Type narrowing for type checker
+    assert output is not None  # Type narrowing for type checker
 
-    # Determine which font to use
-    font_to_use = font
-    if verbose:
-        if font_to_use:
-            click.echo(f"Using font: {font_to_use}")
-        else:
-            try:
-                default_font = get_default_font()
-                click.echo(f"Using default font: {default_font}")
-            except RuntimeError:
-                pass
+    # Show font information
+    _show_font_info(font, verbose)
 
-    if verbose:
-        click.echo(f"Extracting article from: {url}")
-
+    # Extract article
     try:
         article = extract_article(url)
     except Exception as e:
         raise click.ClickException(f"Failed to extract article: {e}")
 
-    if verbose:
-        click.echo(f"Title: {article.title}")
-        click.echo(f"Text length: {len(article.text)} chars")
-        click.echo(f"Top image: {article.top_image or 'None'}")
-        click.echo(f"Found {len(article.images)} images")
+    # Show article information
+    _show_article_info(article, url, verbose)
 
-    top_image = None
-    images = []
-
-    if not no_images:
-        if article.top_image:
-            if verbose:
-                click.echo("Downloading top image...")
-            top_image = download_top_image(article.top_image, verbose=verbose)
-
-        if article.images:
-            if verbose:
-                click.echo("Downloading article images...")
-            skip_urls = {article.top_image} if article.top_image else set()
-            images = download_images(
-                article.images,
-                max_images=max_images,
-                verbose=verbose,
-                skip_urls=skip_urls,
-            )
-        if verbose:
-            click.echo(f"Downloaded {len(images)} images" + (" + top image" if top_image else ""))
-
+    # Download images
+    top_image, images = _download_article_images(article, no_images, max_images, verbose)
     all_images = ([top_image] if top_image else []) + images
 
+    # Generate PDF
     try:
         if verbose:
             click.echo(f"Generating PDF: {output}")
         generate_pdf(
-            article, all_images, output, custom_title=title, font_family=font_to_use
+            article, all_images, output, custom_title=title, font_family=font
         )
         click.echo(f"Saved: {output}")
     finally:

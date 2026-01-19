@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -6,6 +7,19 @@ from fpdf import FPDF
 
 from .extractor import ExtractedArticle
 from .image_handler import DownloadedImage
+
+
+@dataclass
+class FontFamily:
+    """Describes a font family with all its styles."""
+
+    name: str  # Internal name (e.g., "noto-sans")
+    display_name: str  # Display name (e.g., "Noto Sans")
+    regular: list[str]  # Paths to regular font files
+    bold: list[str]  # Paths to bold font files
+    italic: list[str]  # Paths to italic font files
+    bold_italic: list[str]  # Paths to bold italic font files
+
 
 HEADING_SIZES = {
     1: 16,
@@ -16,37 +30,217 @@ HEADING_SIZES = {
     6: 11,
 }
 
-DEJAVU_FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",
-    "C:/Windows/Fonts/DejaVuSans.ttf",
-]
+# Font weight values for variable fonts
+FONT_WEIGHTS = {
+    "regular": 400,      # Normal weight
+    "bold": 700,         # Bold weight
+    "italic": 400,       # Italic uses regular weight
+    "bold_italic": 700,  # Bold italic uses bold weight
+}
 
-DEJAVU_BOLD_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-    "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
-]
-
-DEJAVU_ITALIC_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
-    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Oblique.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-Oblique.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf",
-    "C:/Windows/Fonts/DejaVuSans-Oblique.ttf",
-]
-
-DEJAVU_BOLD_ITALIC_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf",
-    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-BoldOblique.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-BoldOblique.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf",
-    "C:/Windows/Fonts/DejaVuSans-BoldOblique.ttf",
-]
+# Font families with Unicode/Cyrillic support
+FONT_FAMILIES = {
+    "noto-sans": FontFamily(
+        name="noto-sans",
+        display_name="Noto Sans",
+        regular=[
+            "/usr/share/fonts/google-noto-vf/NotoSans[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/google-noto-vf/NotoSans[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSans-Bold.ttf",
+            "/usr/share/fonts/noto/NotoSans-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/google-noto-vf/NotoSans-Italic[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSans-Italic.ttf",
+            "/usr/share/fonts/noto/NotoSans-Italic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/google-noto-vf/NotoSans-Italic[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSans-BoldItalic.ttf",
+            "/usr/share/fonts/noto/NotoSans-BoldItalic.ttf",
+        ],
+    ),
+    "noto-serif": FontFamily(
+        name="noto-serif",
+        display_name="Noto Serif",
+        regular=[
+            "/usr/share/fonts/google-noto-vf/NotoSerif[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSerif-Regular.ttf",
+            "/usr/share/fonts/noto/NotoSerif-Regular.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/google-noto-vf/NotoSerif[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSerif-Bold.ttf",
+            "/usr/share/fonts/noto/NotoSerif-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/google-noto-vf/NotoSerif-Italic[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSerif-Italic.ttf",
+            "/usr/share/fonts/noto/NotoSerif-Italic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/google-noto-vf/NotoSerif-Italic[wght].ttf",
+            "/usr/share/fonts/google-noto/NotoSerif-BoldItalic.ttf",
+            "/usr/share/fonts/noto/NotoSerif-BoldItalic.ttf",
+        ],
+    ),
+    "liberation-sans": FontFamily(
+        name="liberation-sans",
+        display_name="Liberation Sans",
+        regular=[
+            "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/liberation-sans-fonts/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/liberation-sans-fonts/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/liberation-sans/LiberationSans-Italic.ttf",
+            "/usr/share/fonts/liberation-sans-fonts/LiberationSans-Italic.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/liberation-sans/LiberationSans-BoldItalic.ttf",
+            "/usr/share/fonts/liberation-sans-fonts/LiberationSans-BoldItalic.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf",
+        ],
+    ),
+    "liberation-serif": FontFamily(
+        name="liberation-serif",
+        display_name="Liberation Serif",
+        regular=[
+            "/usr/share/fonts/liberation-serif/LiberationSerif-Regular.ttf",
+            "/usr/share/fonts/liberation-serif-fonts/LiberationSerif-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/liberation-serif/LiberationSerif-Bold.ttf",
+            "/usr/share/fonts/liberation-serif-fonts/LiberationSerif-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/liberation-serif/LiberationSerif-Italic.ttf",
+            "/usr/share/fonts/liberation-serif-fonts/LiberationSerif-Italic.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/liberation-serif/LiberationSerif-BoldItalic.ttf",
+            "/usr/share/fonts/liberation-serif-fonts/LiberationSerif-BoldItalic.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf",
+        ],
+    ),
+    "free-sans": FontFamily(
+        name="free-sans",
+        display_name="Free Sans",
+        regular=[
+            "/usr/share/fonts/gnu-free/FreeSans.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/gnu-free/FreeSansBold.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/gnu-free/FreeSansOblique.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/gnu-free/FreeSansBoldOblique.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansBoldOblique.ttf",
+        ],
+    ),
+    "free-serif": FontFamily(
+        name="free-serif",
+        display_name="Free Serif",
+        regular=[
+            "/usr/share/fonts/gnu-free/FreeSerif.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/gnu-free/FreeSerifBold.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/gnu-free/FreeSerifItalic.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/gnu-free/FreeSerifBoldItalic.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSerifBoldItalic.ttf",
+        ],
+    ),
+    "dejavu-sans": FontFamily(
+        name="dejavu-sans",
+        display_name="DejaVu Sans",
+        regular=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "C:/Windows/Fonts/DejaVuSans.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+            "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+            "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Oblique.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans-Oblique.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf",
+            "C:/Windows/Fonts/DejaVuSans-Oblique.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf",
+            "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-BoldOblique.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans-BoldOblique.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans-BoldOblique.ttf",
+            "C:/Windows/Fonts/DejaVuSans-BoldOblique.ttf",
+        ],
+    ),
+    "dejavu-serif": FontFamily(
+        name="dejavu-serif",
+        display_name="DejaVu Serif",
+        regular=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+            "/usr/share/fonts/dejavu-serif-fonts/DejaVuSerif.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSerif.ttf",
+            "/usr/share/fonts/TTF/DejaVuSerif.ttf",
+            "C:/Windows/Fonts/DejaVuSerif.ttf",
+        ],
+        bold=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+            "/usr/share/fonts/dejavu-serif-fonts/DejaVuSerif-Bold.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSerif-Bold.ttf",
+            "/usr/share/fonts/TTF/DejaVuSerif-Bold.ttf",
+            "C:/Windows/Fonts/DejaVuSerif-Bold.ttf",
+        ],
+        italic=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf",
+            "/usr/share/fonts/dejavu-serif-fonts/DejaVuSerif-Italic.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSerif-Italic.ttf",
+            "/usr/share/fonts/TTF/DejaVuSerif-Italic.ttf",
+            "C:/Windows/Fonts/DejaVuSerif-Italic.ttf",
+        ],
+        bold_italic=[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-BoldItalic.ttf",
+            "/usr/share/fonts/dejavu-serif-fonts/DejaVuSerif-BoldItalic.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSerif-BoldItalic.ttf",
+            "/usr/share/fonts/TTF/DejaVuSerif-BoldItalic.ttf",
+            "C:/Windows/Fonts/DejaVuSerif-BoldItalic.ttf",
+        ],
+    ),
+}
 
 
 def find_font(paths: list[str]) -> Optional[str]:
@@ -57,31 +251,170 @@ def find_font(paths: list[str]) -> Optional[str]:
     return None
 
 
+def is_variable_font(font_path: str) -> bool:
+    """Check if font is a variable font by filename.
+
+    Variable fonts contain axis variations (e.g., [wght], [wdth]) in their names.
+
+    Args:
+        font_path: Path to the font file.
+
+    Returns:
+        True if the font is a variable font, False otherwise.
+    """
+    return "[wght]" in font_path
+
+
+def get_font_families() -> dict[str, FontFamily]:
+    """Get all available font families."""
+    return FONT_FAMILIES
+
+
+def find_available_fonts() -> list[str]:
+    """Find all available font families in the system.
+
+    Returns:
+        List of font family names that are available in the system.
+    """
+    available = []
+    for name, family in FONT_FAMILIES.items():
+        if find_font(family.regular):
+            available.append(name)
+    return available
+
+
+def get_default_font() -> str:
+    """Get the first available font family name.
+
+    Returns:
+        Name of the first available font family.
+
+    Raises:
+        RuntimeError: If no fonts are available.
+    """
+    available = find_available_fonts()
+    if not available:
+        raise RuntimeError(
+            "No Unicode fonts found. Please install one of the following:\n"
+            "  - Noto Sans: sudo dnf install google-noto-sans-fonts\n"
+            "  - Liberation Sans: sudo dnf install liberation-sans-fonts\n"
+            "  - DejaVu Sans: sudo dnf install dejavu-sans-fonts\n"
+            "  - Free Sans: sudo dnf install gnu-free-sans-fonts\n"
+            "\nFor Debian/Ubuntu use 'apt install', for Arch use 'pacman -S'."
+        )
+    return available[0]
+
+
+def get_font_family(name: Optional[str] = None) -> FontFamily:
+    """Get font family by name or return default.
+
+    Args:
+        name: Font family name (e.g., 'noto-sans'). If None, returns default.
+
+    Returns:
+        FontFamily object for the requested font.
+
+    Raises:
+        ValueError: If the font family name is not found.
+        RuntimeError: If the requested font is not available in the system.
+    """
+    if name is None:
+        name = get_default_font()
+
+    if name not in FONT_FAMILIES:
+        available = list(FONT_FAMILIES.keys())
+        raise ValueError(
+            f"Unknown font family '{name}'.\n"
+            f"Available fonts: {', '.join(available)}\n"
+            f"Use --list-fonts to see which fonts are available in your system."
+        )
+
+    family = FONT_FAMILIES[name]
+    if not find_font(family.regular):
+        raise RuntimeError(
+            f"Font family '{name}' ({family.display_name}) is not installed.\n"
+            f"Please install it or choose another font using --list-fonts."
+        )
+
+    return family
+
+
 class ArticlePDF(FPDF):
-    def __init__(self):
+    def __init__(self, font_family_name: Optional[str] = None):
+        """Initialize PDF with specified font family.
+
+        Args:
+            font_family_name: Name of the font family to use (e.g., 'noto-sans').
+                            If None, uses the first available font.
+        """
         super().__init__()
-        self.font_family_name = "DejaVu"
+        self.font_family = get_font_family(font_family_name)
+        self.font_family_name = "UnicodeFont"  # Internal name for FPDF
         self._setup_fonts()
 
     def _setup_fonts(self):
         """Setup Unicode fonts for Cyrillic support."""
-        regular_font = find_font(DEJAVU_FONT_PATHS)
-        bold_font = find_font(DEJAVU_BOLD_PATHS)
-        italic_font = find_font(DEJAVU_ITALIC_PATHS)
-        bold_italic_font = find_font(DEJAVU_BOLD_ITALIC_PATHS)
+        regular_font = find_font(self.font_family.regular)
+        bold_font = find_font(self.font_family.bold)
+        italic_font = find_font(self.font_family.italic)
+        bold_italic_font = find_font(self.font_family.bold_italic)
 
-        if regular_font:
-            self.add_font(self.font_family_name, "", regular_font)
-            if bold_font:
-                self.add_font(self.font_family_name, "B", bold_font)
-            if italic_font:
-                self.add_font(self.font_family_name, "I", italic_font)
-            if bold_italic_font:
-                self.add_font(self.font_family_name, "BI", bold_italic_font)
-            self.set_font(self.font_family_name, size=12)
-        else:
-            self.font_family_name = "Helvetica"
-            self.set_font("Helvetica", size=12)
+        if not regular_font:
+            raise RuntimeError(
+                f"Font family '{self.font_family.name}' ({self.font_family.display_name}) "
+                f"could not be loaded. The regular font file is missing.\n"
+                f"Use --list-fonts to see available fonts."
+            )
+
+        # Add regular font
+        self._add_font_with_variations(regular_font, "", FONT_WEIGHTS["regular"])
+
+        # Add bold font if available
+        if bold_font:
+            self._add_font_with_variations(bold_font, "B", FONT_WEIGHTS["bold"])
+
+        # Add italic font if available
+        if italic_font:
+            self._add_font_with_variations(italic_font, "I", FONT_WEIGHTS["italic"])
+
+        # Add bold-italic font if available
+        if bold_italic_font:
+            self._add_font_with_variations(bold_italic_font, "BI", FONT_WEIGHTS["bold_italic"])
+
+        self.set_font(self.font_family_name, size=12)
+
+    def _add_font_with_variations(self, font_path: str, style: str, weight: int):
+        """Add font with variable font support.
+
+        For variable fonts (with [wght] in filename), adds the 'variations' parameter
+        to specify the weight. For regular TTF fonts, adds them normally.
+
+        Args:
+            font_path: Path to the font file.
+            style: Font style ("" for regular, "B" for bold, "I" for italic, "BI" for bold-italic).
+            weight: Font weight value (e.g., 400 for regular, 700 for bold).
+        """
+        try:
+            if is_variable_font(font_path):
+                # Variable font: use variations parameter
+                self.add_font(
+                    self.font_family_name,
+                    style,
+                    font_path,
+                    variations={"wght": weight}
+                )
+            else:
+                # Regular TTF: add without variations
+                self.add_font(self.font_family_name, style, font_path)
+        except (TypeError, AttributeError):
+            # Fallback: try adding without variations if there's an error
+            # This handles cases where variations parameter is not supported
+            try:
+                self.add_font(self.font_family_name, style, font_path)
+            except Exception as fallback_error:
+                raise RuntimeError(
+                    f"Failed to add font {font_path} (style: {style}): {fallback_error}"
+                ) from fallback_error
 
     def header(self):
         pass
@@ -99,9 +432,19 @@ def generate_pdf(
     images: list[DownloadedImage],
     output_path: str,
     custom_title: Optional[str] = None,
+    font_family: Optional[str] = None,
 ) -> None:
-    """Generate PDF from extracted article with images."""
-    pdf = ArticlePDF()
+    """Generate PDF from extracted article with images.
+
+    Args:
+        article: Extracted article data.
+        images: List of downloaded images.
+        output_path: Path where to save the PDF file.
+        custom_title: Optional custom title for the PDF.
+        font_family: Optional font family name (e.g., 'noto-sans').
+                    If None, uses the first available font.
+    """
+    pdf = ArticlePDF(font_family_name=font_family)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
@@ -122,6 +465,7 @@ def generate_pdf(
         pdf.set_text_color(100, 100, 100)
         for meta in meta_parts:
             pdf.multi_cell(0, 6, meta)
+            pdf.ln()
         pdf.set_text_color(0, 0, 0)
         pdf.ln(10)
 

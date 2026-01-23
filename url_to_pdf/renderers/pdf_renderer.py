@@ -1,12 +1,20 @@
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from fpdf import FPDF
 
-from .extractor import ExtractedArticle
-from .image_handler import DownloadedImage
+from .base import BaseRenderer, RenderError, RenderOptions
+from .document import (
+    Document,
+    HeadingBlock,
+    HorizontalRuleBlock,
+    ImageBlock,
+    InlineElement,
+    InlineType,
+    ParagraphBlock,
+)
+from .registry import registry
 
 
 @dataclass
@@ -30,15 +38,13 @@ HEADING_SIZES = {
     6: 11,
 }
 
-# Font weight values for variable fonts
 FONT_WEIGHTS = {
-    "regular": 400,      # Normal weight
-    "bold": 700,         # Bold weight
-    "italic": 400,       # Italic uses regular weight
-    "bold_italic": 700,  # Bold italic uses bold weight
+    "regular": 400,
+    "bold": 700,
+    "italic": 400,
+    "bold_italic": 700,
 }
 
-# Font families with Unicode/Cyrillic support
 FONT_FAMILIES = {
     "noto-sans": FontFamily(
         name="noto-sans",
@@ -242,6 +248,8 @@ FONT_FAMILIES = {
     ),
 }
 
+LINK_COLOR = (0, 0, 180)
+
 
 def find_font(paths: list[str]) -> Optional[str]:
     """Find first existing font from list of paths."""
@@ -252,16 +260,7 @@ def find_font(paths: list[str]) -> Optional[str]:
 
 
 def is_variable_font(font_path: str) -> bool:
-    """Check if font is a variable font by filename.
-
-    Variable fonts contain axis variations (e.g., [wght], [wdth]) in their names.
-
-    Args:
-        font_path: Path to the font file.
-
-    Returns:
-        True if the font is a variable font, False otherwise.
-    """
+    """Check if font is a variable font by filename."""
     return "[wght]" in font_path
 
 
@@ -271,11 +270,7 @@ def get_font_families() -> dict[str, FontFamily]:
 
 
 def find_available_fonts() -> list[str]:
-    """Find all available font families in the system.
-
-    Returns:
-        List of font family names that are available in the system.
-    """
+    """Find all available font families in the system."""
     available = []
     for name, family in FONT_FAMILIES.items():
         if find_font(family.regular):
@@ -284,14 +279,7 @@ def find_available_fonts() -> list[str]:
 
 
 def get_default_font() -> str:
-    """Get the first available font family name.
-
-    Returns:
-        Name of the first available font family.
-
-    Raises:
-        RuntimeError: If no fonts are available.
-    """
+    """Get the first available font family name."""
     available = find_available_fonts()
     if not available:
         raise RuntimeError(
@@ -306,18 +294,7 @@ def get_default_font() -> str:
 
 
 def get_font_family(name: Optional[str] = None) -> FontFamily:
-    """Get font family by name or return default.
-
-    Args:
-        name: Font family name (e.g., 'noto-sans'). If None, returns default.
-
-    Returns:
-        FontFamily object for the requested font.
-
-    Raises:
-        ValueError: If the font family name is not found.
-        RuntimeError: If the requested font is not available in the system.
-    """
+    """Get font family by name or return default."""
     if name is None:
         name = get_default_font()
 
@@ -340,77 +317,56 @@ def get_font_family(name: Optional[str] = None) -> FontFamily:
 
 
 class ArticlePDF(FPDF):
-    def __init__(self, font_family_name: Optional[str] = None):
-        """Initialize PDF with specified font family.
+    """Custom PDF class with Unicode font support."""
 
-        Args:
-            font_family_name: Name of the font family to use (e.g., 'noto-sans').
-                            If None, uses the first available font.
-        """
+    def __init__(self, font_family_name: Optional[str] = None):
         super().__init__()
-        self.font_family = get_font_family(font_family_name)
-        self.font_family_name = "UnicodeFont"  # Internal name for FPDF
+        self._custom_font_family = get_font_family(font_family_name)
+        self._font_name = "UnicodeFont"
         self._setup_fonts()
 
     def _setup_fonts(self):
         """Setup Unicode fonts for Cyrillic support."""
-        regular_font = find_font(self.font_family.regular)
-        bold_font = find_font(self.font_family.bold)
-        italic_font = find_font(self.font_family.italic)
-        bold_italic_font = find_font(self.font_family.bold_italic)
+        regular_font = find_font(self._custom_font_family.regular)
+        bold_font = find_font(self._custom_font_family.bold)
+        italic_font = find_font(self._custom_font_family.italic)
+        bold_italic_font = find_font(self._custom_font_family.bold_italic)
 
         if not regular_font:
             raise RuntimeError(
-                f"Font family '{self.font_family.name}' ({self.font_family.display_name}) "
+                f"Font family '{self._custom_font_family.name}' "
+                f"({self._custom_font_family.display_name}) "
                 f"could not be loaded. The regular font file is missing.\n"
                 f"Use --list-fonts to see available fonts."
             )
 
-        # Add regular font
         self._add_font_with_variations(regular_font, "", FONT_WEIGHTS["regular"])
-
-        # Add bold font if available
         if bold_font:
             self._add_font_with_variations(bold_font, "B", FONT_WEIGHTS["bold"])
-
-        # Add italic font if available
         if italic_font:
             self._add_font_with_variations(italic_font, "I", FONT_WEIGHTS["italic"])
-
-        # Add bold-italic font if available
         if bold_italic_font:
-            self._add_font_with_variations(bold_italic_font, "BI", FONT_WEIGHTS["bold_italic"])
+            self._add_font_with_variations(
+                bold_italic_font, "BI", FONT_WEIGHTS["bold_italic"]
+            )
 
-        self.set_font(self.font_family_name, size=12)
+        self.set_font(self._font_name, size=12)
 
     def _add_font_with_variations(self, font_path: str, style: str, weight: int):
-        """Add font with variable font support.
-
-        For variable fonts (with [wght] in filename), adds the 'variations' parameter
-        to specify the weight. For regular TTF fonts, adds them normally.
-
-        Args:
-            font_path: Path to the font file.
-            style: Font style ("" for regular, "B" for bold, "I" for italic, "BI" for bold-italic).
-            weight: Font weight value (e.g., 400 for regular, 700 for bold).
-        """
+        """Add font with variable font support."""
         try:
             if is_variable_font(font_path):
-                # Variable font: use variations parameter
                 self.add_font(
-                    self.font_family_name,
-                    style,
+                    self._font_name,
+                    style,  # type: ignore[arg-type]
                     font_path,
-                    variations={"wght": weight}
+                    variations={"wght": weight},  # pyright: ignore[reportCallIssue]
                 )
             else:
-                # Regular TTF: add without variations
-                self.add_font(self.font_family_name, style, font_path)
+                self.add_font(self._font_name, style, font_path)  # type: ignore[arg-type]
         except (TypeError, AttributeError):
-            # Fallback: try adding without variations if there's an error
-            # This handles cases where variations parameter is not supported
             try:
-                self.add_font(self.font_family_name, style, font_path)
+                self.add_font(self._font_name, style, font_path)  # type: ignore[arg-type]
             except Exception as fallback_error:
                 raise RuntimeError(
                     f"Failed to add font {font_path} (style: {style}): {fallback_error}"
@@ -421,175 +377,141 @@ class ArticlePDF(FPDF):
 
     def footer(self):
         self.set_y(-15)
-        self.set_font(self.font_family_name, size=8)
+        self.set_font(self._font_name, size=8)
         self.set_text_color(128, 128, 128)
         self.cell(0, 10, f"Page {self.page_no()}", align="C")
         self.set_text_color(0, 0, 0)
 
 
-def generate_pdf(
-    article: ExtractedArticle,
-    images: list[DownloadedImage],
-    output_path: str,
-    custom_title: Optional[str] = None,
-    font_family: Optional[str] = None,
-) -> None:
-    """Generate PDF from extracted article with images.
+@registry.register
+class PDFRenderer(BaseRenderer):
+    """Renders Document to PDF format."""
 
-    Args:
-        article: Extracted article data.
-        images: List of downloaded images.
-        output_path: Path where to save the PDF file.
-        custom_title: Optional custom title for the PDF.
-        font_family: Optional font family name (e.g., 'noto-sans').
-                    If None, uses the first available font.
-    """
-    pdf = ArticlePDF(font_family_name=font_family)
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
+    SUPPORTED_FEATURES = {"fonts", "images", "links"}
 
-    effective_width = pdf.w - pdf.l_margin - pdf.r_margin
+    @property
+    def format_name(self) -> str:
+        return "pdf"
 
-    title = custom_title or article.title
-    pdf.set_font(pdf.font_family_name, "B", 18)
-    pdf.multi_cell(0, 10, title)
-    pdf.ln(5)
+    @property
+    def file_extension(self) -> str:
+        return ".pdf"
 
-    meta_parts = []
-    if article.authors:
-        meta_parts.append(f"Authors: {', '.join(article.authors)}")
-    meta_parts.append(f"Source: {article.source_url}")
+    def render(
+        self, document: Document, output_path: Path, options: Optional[RenderOptions] = None
+    ) -> Path:
+        """Render document to PDF file."""
+        options = options or RenderOptions()
+        output_path = Path(output_path)
 
-    if meta_parts:
-        pdf.set_font(pdf.font_family_name, size=10)
-        pdf.set_text_color(100, 100, 100)
-        for meta in meta_parts:
-            pdf.multi_cell(0, 6, meta)
-            pdf.ln()
-        pdf.set_text_color(0, 0, 0)
-        pdf.ln(10)
+        if output_path.suffix.lower() != ".pdf":
+            output_path = output_path.with_suffix(".pdf")
 
-    images_to_insert = list(images)
+        try:
+            pdf = ArticlePDF(font_family_name=options.font_family)
+        except (RuntimeError, ValueError) as e:
+            raise RenderError(str(e)) from e
 
-    if images_to_insert:
-        top_img = images_to_insert.pop(0)
-        _insert_image(pdf, top_img, effective_width)
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
 
-    content_blocks = article.content if article.content else []
-    paragraph_count = sum(1 for b in content_blocks if b.type == "paragraph")
-    image_interval = (
-        max(1, paragraph_count // (len(images_to_insert) + 1))
-        if images_to_insert
-        else 0
-    )
-    paragraph_idx = 0
+        effective_width = pdf.w - pdf.l_margin - pdf.r_margin
 
-    for block in content_blocks:
-        if block.type == "heading":
-            pdf.ln(4)
-            size = HEADING_SIZES.get(block.level, 12)
-            pdf.set_font(pdf.font_family_name, "B", size)
-            pdf.multi_cell(0, 8, block.text)
-            pdf.ln(2)
-            pdf.set_font(pdf.font_family_name, size=12)
-        else:
-            pdf.set_font(pdf.font_family_name, size=12)
-            content = block.html if block.html else block.text
-            _write_formatted_text(pdf, content)
-            pdf.ln(4)
+        # Title
+        pdf.set_font(pdf._font_name, "B", 18)
+        pdf.multi_cell(0, 10, document.metadata.title)
+        pdf.ln(5)
 
-            paragraph_idx += 1
-            if (
-                images_to_insert
-                and image_interval > 0
-                and paragraph_idx % image_interval == 0
-            ):
-                img = images_to_insert.pop(0)
-                _insert_image(pdf, img, effective_width)
+        # Metadata
+        meta_parts = []
+        if document.metadata.authors:
+            meta_parts.append(f"Authors: {', '.join(document.metadata.authors)}")
+        if document.metadata.source_url:
+            meta_parts.append(f"Source: {document.metadata.source_url}")
 
-    for img in images_to_insert:
-        _insert_image(pdf, img, effective_width)
+        if meta_parts:
+            pdf.set_font(pdf._font_name, size=10)
+            pdf.set_text_color(100, 100, 100)
+            for meta in meta_parts:
+                pdf.multi_cell(0, 6, meta)
+                pdf.ln()
+            pdf.set_text_color(0, 0, 0)
+            pdf.ln(10)
 
-    pdf.output(output_path)
+        # Content blocks
+        for block in document.blocks:
+            if isinstance(block, HeadingBlock):
+                pdf.ln(4)
+                size = HEADING_SIZES.get(block.level, 12)
+                pdf.set_font(pdf._font_name, "B", size)
+                text = self._inline_to_text(block.content)
+                pdf.multi_cell(0, 8, text)
+                pdf.ln(2)
+                pdf.set_font(pdf._font_name, size=12)
 
+            elif isinstance(block, ParagraphBlock):
+                pdf.set_font(pdf._font_name, size=12)
+                self._write_inline_elements(pdf, block.content)
+                pdf.ln(4)
 
-LINK_COLOR = (0, 0, 180)  # Blue for links
+            elif isinstance(block, ImageBlock):
+                if options.include_images:
+                    self._insert_image(pdf, block, effective_width)
 
+            elif isinstance(block, HorizontalRuleBlock):
+                pdf.ln(5)
+                y = pdf.get_y()
+                pdf.line(pdf.l_margin, y, pdf.w - pdf.r_margin, y)
+                pdf.ln(5)
 
-def _write_formatted_text(pdf: ArticlePDF, html_text: str) -> None:
-    """Write text with bold/italic/link formatting from HTML tags."""
-    tag_pattern = re.compile(r'<(/?)([biu])>|<a href="([^"]+)">|</a>', re.IGNORECASE)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        pdf.output(str(output_path))
 
-    parts = []
-    last_end = 0
-    for match in tag_pattern.finditer(html_text):
-        if match.start() > last_end:
-            parts.append(("text", html_text[last_end : match.start()]))
+        return output_path
 
-        if match.group(0) == "</a>":
-            parts.append(("end_link", None))
-        elif match.group(3):
-            parts.append(("start_link", match.group(3)))
-        elif match.group(1) == "/":
-            parts.append(("end_" + match.group(2).lower(), None))
-        else:
-            parts.append(("start_" + match.group(2).lower(), None))
+    def _inline_to_text(self, elements: list[InlineElement]) -> str:
+        """Convert inline elements to plain text."""
+        return "".join(elem.content for elem in elements)
 
-        last_end = match.end()
-
-    if last_end < len(html_text):
-        parts.append(("text", html_text[last_end:]))
-
-    bold = False
-    italic = False
-    link_url = None
-
-    for part_type, value in parts:
-        if part_type == "text" and value:
-            if bold and italic:
-                style = "BI"
-            elif bold:
-                style = "B"
-            elif italic:
-                style = "I"
+    def _write_inline_elements(self, pdf: ArticlePDF, elements: list[InlineElement]):
+        """Write inline elements with formatting to PDF."""
+        for elem in elements:
+            if elem.type == InlineType.BOLD:
+                pdf.set_font(pdf._font_name, "B", 12)
+            elif elem.type == InlineType.ITALIC:
+                pdf.set_font(pdf._font_name, "I", 12)
             else:
-                style = ""
-            pdf.set_font(pdf.font_family_name, style, 12)
+                pdf.set_font(pdf._font_name, "", 12)
 
-            if link_url:
+            if elem.type == InlineType.LINK and elem.url:
                 pdf.set_text_color(*LINK_COLOR)
-                pdf.write(7, value, link_url)
+                pdf.write(7, elem.content, elem.url)
                 pdf.set_text_color(0, 0, 0)
             else:
-                pdf.write(7, value)
-        elif part_type == "start_b":
-            bold = True
-        elif part_type == "end_b":
-            bold = False
-        elif part_type == "start_i":
-            italic = True
-        elif part_type == "end_i":
-            italic = False
-        elif part_type == "start_link":
-            link_url = value
-        elif part_type == "end_link":
-            link_url = None
+                pdf.write(7, elem.content)
 
-    pdf.ln()
+        pdf.ln()
 
+    def _insert_image(
+        self, pdf: ArticlePDF, block: ImageBlock, max_width: float
+    ) -> None:
+        """Insert image into PDF."""
+        if not block.path or not block.path.exists():
+            return
 
-def _insert_image(pdf: ArticlePDF, img: DownloadedImage, max_width: float) -> None:
-    """Insert image into PDF, scaling to fit page width."""
-    try:
-        img_width = min(img.width, max_width)
-        scale = img_width / img.width
-        img_height = img.height * scale
+        try:
+            width = block.width or 100
+            height = block.height or 100
 
-        if pdf.get_y() + img_height > pdf.h - pdf.b_margin:
-            pdf.add_page()
+            img_width = min(width, max_width)
+            scale = img_width / width
+            img_height = height * scale
 
-        x = pdf.l_margin + (max_width - img_width) / 2
-        pdf.image(str(img.path), x=x, w=img_width)
-        pdf.ln(8)
-    except Exception:
-        pass
+            if pdf.get_y() + img_height > pdf.h - pdf.b_margin:
+                pdf.add_page()
+
+            x = pdf.l_margin + (max_width - img_width) / 2
+            pdf.image(str(block.path), x=x, w=img_width)
+            pdf.ln(8)
+        except Exception:
+            pass

@@ -19,6 +19,8 @@ dependencies = [
   "lxml>=4.9.0",
   "lxml_html_clean>=0.1.0",
   "rich>=13.0.0",
+  "ebooklib>=0.18",
+  "pyyaml>=6.0",
 ]
 
 [project.scripts]

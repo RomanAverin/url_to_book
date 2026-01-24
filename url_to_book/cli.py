@@ -248,10 +248,10 @@ def main(
       - A path to a .md file to convert
 
     Examples:
-      url-to-pdf https://example.com/article -o article.pdf
-      url-to-pdf https://example.com/article -o article.md -f md
-      url-to-pdf article.md -o article.pdf -f pdf
-      url-to-pdf article.md -o article.epub -f epub
+      url-to-book https://example.com/article -o article.pdf
+      url-to-book https://example.com/article -o article.md -f md
+      url-to-book article.md -o article.pdf -f pdf
+      url-to-book article.md -o article.epub -f epub
     """
     # Handle --list-formats
     if list_formats:

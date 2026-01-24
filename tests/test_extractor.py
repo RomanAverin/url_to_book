@@ -1,7 +1,7 @@
 import pytest
 from lxml import html
 
-from url_to_pdf.extractor import ContentBlock, _clean_html, _extract_content_blocks
+from url_to_book.extractor import ContentBlock, _clean_html, _extract_content_blocks
 
 
 class TestCleanHtml:

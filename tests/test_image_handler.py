@@ -1,6 +1,6 @@
 import pytest
 
-from url_to_pdf.image_handler import is_ad_url
+from url_to_book.image_handler import is_ad_url
 
 
 class TestIsAdUrl:

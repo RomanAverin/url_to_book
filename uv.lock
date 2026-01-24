@@ -1287,7 +1287,7 @@ wheels = [
 ]
 
 [[package]]
-name = "url-to-pdf"
+name = "url-to-book"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

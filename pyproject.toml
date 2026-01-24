@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "url-to-pdf"
+name = "url_to_book"
 version = "0.1.0"
-description = "CLI tool to extract article content from URL and save as PDF"
+description = "CLI tool to convert web articles to PDF, EPUB, FB2, and Markdown"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-url-to-pdf = "url_to_pdf.cli:main"
+url-to-book = "url_to_book.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "pylint>=3.0.0"]

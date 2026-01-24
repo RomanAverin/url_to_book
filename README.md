@@ -1,4 +1,4 @@
-# url-to-pdf
+# url_to_book
 
 CLI tool to extract article content from a web page and save it as PDF.
 
@@ -24,31 +24,31 @@ pip Install -e .
 
 ```bash
 # Basic usage (uses default font)
-url-to-pdf https://example.com/article -o article.pdf
+url-to-book https://example.com/article -o article.pdf
 
 # With custom title
-url-to-pdf https://example.com/article -o article.pdf --title "My Title"
+url-to-book https://example.com/article -o article.pdf --title "My Title"
 
 # Without images
-url-to-pdf https://example.com/article -o article.pdf --no-images
+url-to-book https://example.com/article -o article.pdf --no-images
 
 # Verbose output
-url-to-pdf https://example.com/article -o article.pdf -v
+url-to-book https://example.com/article -o article.pdf -v
 
 # List available fonts
-url-to-pdf --list-fonts
+url-to-book --list-fonts
 
 # Use specific font (sans-serif)
-url-to-pdf https://example.com/article -o article.pdf --font noto-sans
+url-to-book https://example.com/article -o article.pdf --font noto-sans
 
 # Use serif font
-url-to-pdf https://example.com/article -o article.pdf --font noto-serif
+url-to-book https://example.com/article -o article.pdf --font noto-serif
 
 # Use Liberation Sans (metrics-compatible with Arial)
-url-to-pdf https://example.com/article -o article.pdf --font liberation-sans
+url-to-book https://example.com/article -o article.pdf --font liberation-sans
 
 # With verbose output showing which font is used
-url-to-pdf https://example.com/article -o article.pdf -v --font noto-serif
+url-to-book https://example.com/article -o article.pdf -v --font noto-serif
 ```
 
 ### Available Fonts
@@ -76,7 +76,7 @@ uv sync --extra dev
 uv run pytest
 
 # Run linter
-uv run pylint url_to_pdf
+uv run pylint url_to_book
 ```
 
 ## License

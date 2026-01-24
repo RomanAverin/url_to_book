@@ -1,0 +1,16 @@
+include README.md
+include LICENSE
+include pyproject.toml
+
+recursive-include url_to_book *.py
+
+exclude .gitignore
+exclude .editorconfig
+exclude .python-version
+recursive-exclude tests *
+recursive-exclude .github *
+recursive-exclude .pytest_cache *
+recursive-exclude .ruff_cache *
+recursive-exclude __pycache__ *
+recursive-exclude *.egg-info *
+exclude .coverage

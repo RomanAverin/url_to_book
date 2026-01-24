@@ -4,12 +4,53 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "url_to_book"
-version = "0.1.0"
+version = "1.0.0"
 description = "CLI tool to convert web articles to PDF, EPUB, FB2, and Markdown"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Roman Averin" }]
+
+keywords = [
+  "pdf",
+  "epub",
+  "fb2",
+  "markdown",
+  "converter",
+  "web-scraping",
+  "article-extraction",
+  "newspaper",
+  "ebook",
+  "ebooks",
+  "cli-tool",
+  "content-extraction",
+  "web-to-pdf"
+]
+
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: End Users/Desktop",
+  "Intended Audience :: Information Technology",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Text Processing :: Markup :: Markdown",
+  "Topic :: Text Processing :: Markup :: HTML",
+  "Topic :: Utilities",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3 :: Only",
+  "Environment :: Console",
+  "Natural Language :: English",
+  "Natural Language :: Russian",
+  "Typing :: Typed",
+]
 dependencies = [
   "newspaper4k>=0.9.0",
   "fpdf2>=2.7.0",
@@ -22,6 +63,13 @@ dependencies = [
   "ebooklib>=0.18",
   "pyyaml>=6.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/RomanAverin/url_to_book"
+Repository = "https://github.com/RomanAverin/url_to_book"
+Issues = "https://github.com/RomanAverin/url_to_book/issues"
+Documentation = "https://github.com/RomanAverin/url_to_book#readme"
+Changelog = "https://github.com/RomanAverin/url_to_book/releases"
 
 [project.scripts]
 url-to-book = "url_to_book.cli:main"

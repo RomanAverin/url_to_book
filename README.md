@@ -1,5 +1,9 @@
 # url_to_book
 
+[![PyPI version](https://badge.fury.io/py/url-to-book.svg)](https://pypi.org/project/url-to-book/)
+[![Python versions](https://img.shields.io/pypi/pyversions/url-to-book.svg)](https://pypi.org/project/url-to-book/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 CLI tool to extract article content from a web page and save it in various formats (PDF, EPUB, FB2, Markdown).
 
 ## Features
@@ -14,11 +18,18 @@ CLI tool to extract article content from a web page and save it in various forma
 
 ## Installation
 
-Install as package
+### From PyPI (recommended)
 
 ```bash
-pip Install -e .
+pip install url-to-book
+```
 
+### From source
+
+```bash
+git clone https://github.com/RomanAverin/url_to_book.git
+cd url_to_book
+pip install -e .
 ```
 
 ## Usage

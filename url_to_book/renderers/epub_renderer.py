@@ -31,7 +31,7 @@ class EPUBRenderer(BaseRenderer):
     def file_extension(self) -> str:
         return ".epub"
 
-    def render(
+    def render(  # pylint: disable=too-many-statements
         self, document: Document, output_path: Path, options: Optional[RenderOptions] = None
     ) -> Path:
         """Render document to EPUB file."""

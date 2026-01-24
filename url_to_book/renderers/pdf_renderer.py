@@ -397,7 +397,7 @@ class PDFRenderer(BaseRenderer):
     def file_extension(self) -> str:
         return ".pdf"
 
-    def render(
+    def render(  # pylint: disable=protected-access
         self, document: Document, output_path: Path, options: Optional[RenderOptions] = None
     ) -> Path:
         """Render document to PDF file."""
@@ -473,7 +473,9 @@ class PDFRenderer(BaseRenderer):
         """Convert inline elements to plain text."""
         return "".join(elem.content for elem in elements)
 
-    def _write_inline_elements(self, pdf: ArticlePDF, elements: list[InlineElement]):
+    def _write_inline_elements(  # pylint: disable=protected-access
+        self, pdf: ArticlePDF, elements: list[InlineElement]
+    ):
         """Write inline elements with formatting to PDF."""
         for elem in elements:
             if elem.type == InlineType.BOLD:

@@ -190,6 +190,7 @@ def _is_url(source: str) -> bool:
 )
 @click.option(
     "--list-formats",
+    "show_formats",
     is_flag=True,
     default=False,
     help="List available output formats and exit",
@@ -229,11 +230,11 @@ def _is_url(source: str) -> bool:
     default=False,
     help="Enable verbose output",
 )
-def main(
+def main(  # pylint: disable=too-many-statements
     source: str | None,
     output: str | None,
     output_format: str,
-    list_formats: bool = False,
+    show_formats: bool = False,
     title: str | None = None,
     no_images: bool = False,
     max_images: int = 10,
@@ -254,7 +255,7 @@ def main(
       url-to-book article.md -o article.epub -f epub
     """
     # Handle --list-formats
-    if list_formats:
+    if show_formats:
         _handle_list_formats()
         return
 
@@ -339,21 +340,22 @@ def main(
 
                 click.echo(f"Saved: {output}")
                 return
-            else:
-                # Verbose mode
-                article = extract_article(source)
-                _show_article_info(article, source, verbose)
 
-                top_image, images = _download_article_images(
-                    article, no_images, max_images, verbose
-                )
-                all_images = ([top_image] if top_image else []) + images
+            # Verbose mode
+            article = extract_article(source)
+            _show_article_info(article, source, verbose)
 
-                converter = ArticleToDocumentConverter()
-                document = converter.convert(article, all_images)
+            top_image, images = _download_article_images(
+                article, no_images, max_images, verbose
+            )
+            all_images = ([top_image] if top_image else []) + images
 
-                if title:
-                    document.metadata.title = title
+            converter = ArticleToDocumentConverter()
+            document = converter.convert(article, all_images)
+
+            if title:
+                document.metadata.title = title
+
         else:
             raise click.ClickException(
                 f"Invalid source: {source}\n"
@@ -372,7 +374,7 @@ def main(
 
     except Exception as e:
         if verbose:
-            import traceback
+            import traceback  # pylint: disable=import-outside-toplevel
             traceback.print_exc()
         raise click.ClickException(f"Failed: {e}") from e
     finally:

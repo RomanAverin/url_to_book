@@ -35,7 +35,7 @@ class FB2Renderer(BaseRenderer):
     def file_extension(self) -> str:
         return ".fb2"
 
-    def render(
+    def render(  # pylint: disable=too-many-statements
         self, document: Document, output_path: Path, options: Optional[RenderOptions] = None
     ) -> Path:
         """Render document to FB2 file."""

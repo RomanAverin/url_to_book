@@ -11,10 +11,19 @@ ALLOWED_TAGS = {"b", "strong", "i", "em", "u"}
 
 @dataclass
 class ContentBlock:
+    """A content block from an article (heading or paragraph).
+
+    Attributes:
+        type: Block type, either "heading" or "paragraph".
+        text: Plain text content.
+        html: HTML content with allowed formatting tags.
+        level: Heading level (1-6). Only used for headings.
+    """
+
     type: Literal["heading", "paragraph"]
     text: str
     html: str = ""
-    level: int = 0  # For headings: 1-6
+    level: int = 0
 
 
 def _clean_html(element: html.HtmlElement, base_url: str = "") -> str:
@@ -69,9 +78,21 @@ def _clean_html(element: html.HtmlElement, base_url: str = "") -> str:
 
 @dataclass
 class ExtractedArticle:
+    """Extracted article content from a URL.
+
+    Attributes:
+        title: Article title.
+        content: List of content blocks (headings and paragraphs).
+        text: Plain text content as fallback.
+        authors: List of article authors.
+        images: List of image URLs found in the article.
+        top_image: URL of the main article image.
+        source_url: Original URL the article was extracted from.
+    """
+
     title: str
     content: list[ContentBlock]
-    text: str  # Plain text fallback
+    text: str
     authors: list[str]
     images: list[str]
     top_image: Optional[str]

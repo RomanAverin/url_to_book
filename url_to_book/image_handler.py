@@ -54,6 +54,18 @@ MAX_ASPECT_RATIO = 5.0
 
 @dataclass
 class DownloadedImage:
+    """A downloaded image file.
+
+    Images are downloaded to temporary files and should be cleaned up
+    using cleanup_images() after use.
+
+    Attributes:
+        path: Path to the temporary image file.
+        width: Image width in pixels.
+        height: Image height in pixels.
+        original_url: Original URL the image was downloaded from.
+    """
+
     path: Path
     width: int
     height: int
@@ -235,6 +247,17 @@ def download_images(
 
 
 def cleanup_images(images: list[DownloadedImage]) -> None:
-    """Remove temporary image files."""
+    """Remove temporary image files.
+
+    Call this function after rendering to clean up downloaded images.
+
+    Args:
+        images: List of downloaded images to remove.
+
+    Example:
+        >>> images = download_images(article, max_images=5)
+        >>> # ... use images ...
+        >>> cleanup_images(images)
+    """
     for img in images:
         img.path.unlink(missing_ok=True)

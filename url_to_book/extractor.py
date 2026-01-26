@@ -178,16 +178,18 @@ def download_article(url: str, timeout: int = 30) -> Article:
     return article
 
 
-def parse_article(article: Article, url: str) -> ExtractedArticle:
-    """Parse downloaded article into structured format.
+def extract_article(url: str, timeout: int = 30) -> ExtractedArticle:
+    """Extract article content from URL using newspaper4k.
 
     Args:
-        article: Downloaded Article object from newspaper4k
-        url: Original URL of the article (needed for resolving relative URLs)
+        url: URL of the article to extract
+        timeout: Request timeout in seconds
 
     Returns:
         ExtractedArticle with structured content blocks
     """
+    article = download_article(url, timeout)
+
     top_image = article.top_image
     content: list[ContentBlock] = []
 
@@ -218,20 +220,3 @@ def parse_article(article: Article, url: str) -> ExtractedArticle:
         top_image=top_image,
         source_url=url,
     )
-
-
-def extract_article(url: str, timeout: int = 30) -> ExtractedArticle:
-    """Extract article content from URL using newspaper4k.
-
-    This is a convenience function that combines downloading and parsing.
-    For more control, use download_article() and parse_article() separately.
-
-    Args:
-        url: URL of the article to extract
-        timeout: Request timeout in seconds
-
-    Returns:
-        ExtractedArticle with structured content blocks
-    """
-    article = download_article(url, timeout)
-    return parse_article(article, url)

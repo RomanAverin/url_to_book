@@ -168,14 +168,14 @@ def download_images(
     downloaded: list[DownloadedImage] = []
     skip_urls = skip_urls or set()
 
-    # Фильтруем URL заранее (удаляем ads и skip_urls)
+    # Pre-filter URLs (remove ads and skip_urls)
     urls_to_process = [
         url for url in image_urls if url not in skip_urls and not is_ad_url(url)
-    ][: max_images * 2]  # Берем с запасом, т.к. некоторые могут не загрузиться
+    ][: max_images * 2]  # Take extra, as some may fail to download
 
     total_to_process = min(len(urls_to_process), max_images)
 
-    # Режим с progress_callback (для rich)
+    # Mode with progress_callback (for rich)
     if progress_callback:
         for url in urls_to_process:
             if len(downloaded) >= max_images:
@@ -188,7 +188,7 @@ def download_images(
             elif img:
                 img.path.unlink(missing_ok=True)
 
-    # Режим прогресс-бара (существующий код)
+    # Progress bar mode
     elif show_progress and not verbose:
         with click.progressbar(
             urls_to_process,
@@ -206,7 +206,7 @@ def download_images(
                 elif img:
                     img.path.unlink(missing_ok=True)
 
-    # Режим verbose (существующий код)
+    # Verbose mode
     else:
         for url in urls_to_process:
             if len(downloaded) >= max_images:
